@@ -7,7 +7,7 @@ def resolve_path(path, root, start):
 class Container:
     def __init__(self, data, parent=None, name=None):
         self.raw_content = data
-        self.content = [Container(element, self) if type(element) == list else element for element in self.raw_content]
+        self.content = [Container(element, self) if type(element) == list else element for element in self.raw_content[:-1]]
         self.parent = parent
 
         self.sub_containers = []
@@ -24,6 +24,9 @@ class Container:
         self.count_visits = bool(self.flags & 1)
         self.track_turn_index = bool(self.flags & 2)
         self.count_start_only = bool(self.flags & 4)
+
+    def __repr__(self):
+        return f'Container: {self.name or "(unnamed)"}'
 
 class Divert:
     def __init__(self, data):
