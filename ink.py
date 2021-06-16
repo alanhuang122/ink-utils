@@ -58,7 +58,33 @@ class Command:
 
 class Variable:
     def __init__(self, operation):
-        pass
+        assert type(operation) == dict
+        self.reassignment = operation.get('re', False)
+        try:
+            self.target = operation['VAR=']
+            self.operation = 'SET'
+        except KeyError:
+            try:
+                self.target = operation['temp=']
+                self.operation = 'SET'
+            except KeyError:
+                try:
+                    self.target = operation['VAR?']
+                    self.operation = 'GET'
+                except KeyError:
+                    raise ValueError(f'Unknown operation for given dict {operation}')
+
+    def __repr__(self):
+        s = f'{self.operation} {self.target}'
+        if self.operation == 'SET':
+            s += f' ({"reassignment" if self.reassignment else "new"})'
+        return s
+
+    def __str__(self):
+        s = f'{self.operation} {self.target} from stack'
+        if self.operation == 'SET':
+            s += f' ({"reassignment" if self.reassignment else "new"})'
+        return s
 
 class Choice:
     def __init__(self, choice):
