@@ -5,17 +5,21 @@ def resolve_path(path, root, start):
     return None
 
 class Container:
-    def __init__(self, data, parent=None):
+    def __init__(self, data, parent=None, name=None):
         self.raw_content = data
         self.content = [Container(element, self) if type(element) == list else element for element in self.raw_content]
         self.parent = parent
 
-        self.sub_containers = data[-1]
-        if (special := self.sub_containers):
-            self.name = special.get('#n')
-            self.flags = special.get('#f', 0)
+        self.sub_containers = []
+        if data[-1]:
+            self.name = name or data[-1].get('#n')
+            self.flags = data[-1].get('#f', 0)
+            for name, container in data[-1].items():
+                if name in ['#n', '#f']:
+                    continue
+                self.sub_containers.append(Container(container, self, name))
         else:
-            self.name = None
+            self.name = name
             self.flags = 0
         self.count_visits = bool(self.flags & 1)
         self.track_turn_index = bool(self.flags & 2)
