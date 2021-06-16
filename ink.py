@@ -3,6 +3,29 @@ import json
 # takes a path, root container, and starting position and returns the element referenced.
 def resolve_path(path, root, start):
     return None
+# takes any object and returns the most likely type
+def get_type(object):
+    if type(object) == list:
+        return Container
+    elif type(object) == dict:
+        if any([key in object for key in ['VAR=', 'temp=', 'VAR?']]):
+            return Variable
+        elif 'CNT?' in object:
+            return ReadCount
+        elif any([key in object for key in ['->', 'f()', '->t->', 'x()']]):
+            return Divert
+        elif '*' in object and 'flg' in object:
+            return Choice
+        else:
+            raise ValueError(f'unknown dict {object}')
+    elif type(object) == str and (object == '\n' or object.startswith('^')):
+        return str
+    elif type(object) == str and object in Command.control_commands:
+        return Command
+    elif type(object) in (int, float):
+        return type(object)
+    else:
+        return ValueError(f'unknown object type - {object}')
 
 class Container:
     def __init__(self, data, parent=None, name=None):
@@ -50,7 +73,8 @@ class Command:
         "seq"      : "Pops an integer, expected to be the number of elements in a sequence that's being entered. In return, it pushes an integer with the next sequence shuffle index to the evaluation stack. This shuffle index is derived from the number of elements in the sequence, the number of elements in it, and the story's random seed from when it was first begun.",
         "thread"   : "Clones/starts a new thread, as used with the <- knot syntax in ink. This essentially clones the entire callstack, branching it.",
         "done"     : "Tries to close/pop the active thread, otherwise marks the story flow safe to exit without a loose end warning.",
-        "end"      : "Ends the story flow immediately, closes all active threads, unwinds the callstack, and removes any choices that were previously created."
+        "end"      : "Ends the story flow immediately, closes all active threads, unwinds the callstack, and removes any choices that were previously created.",
+        "void"     : "Places an object on the evaluation stack when a function returns without a value."
     }
 
     def __init__(self, command):
