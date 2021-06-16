@@ -1,6 +1,7 @@
 import json
 
-def resolve_path(path):
+# takes a path, root container, and starting position and returns the element referenced.
+def resolve_path(path, root, start):
     return None
 
 class Container:
@@ -46,7 +47,14 @@ class Command:
     }
 
     def __init__(self, command):
-        pass
+        self.command = command
+        self.description = Command.control_commands.get(command)
+
+    def __repr__(self):
+        return f'Command: {self.command}'
+
+    def __str__(self):
+        return f'{self.command} - {self.description}'
 
 class Variable:
     def __init__(self, operation):
