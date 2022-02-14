@@ -1,7 +1,5 @@
 import json
 
-lists = []
-
 class Story:
     def __init__(self, jdata):
         self.version = jdata.get('inkVersion')
@@ -273,8 +271,6 @@ class InkList:
     def __init__(self, data):
         self.origins = data.get('origins')
         self.data = data.get('list')
-
-        lists.append(self)
     
     def __repr__(self):
         return repr(self.data)
