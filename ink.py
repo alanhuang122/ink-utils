@@ -1,5 +1,7 @@
 import json
 
+story = None
+
 class Story:
     def __init__(self, jdata):
         self.version = jdata.get('inkVersion')
@@ -8,8 +10,8 @@ class Story:
 
 class Container:
     def __init__(self, data, parent=None, name=None): # TODO: Track stack and use to make contents more useful
-        self.raw_contents = data
-        self.contents = [Container(element, self) if type(element) == list else parse_object(element, self) for element in self.raw_contents[:-1]]
+        self.raw = data
+        self.contents = [Container(element, self) if type(element) == list else parse_object(element, self) for element in self.raw[:-1]]
         self.parent = parent
 
         self.sub_elements = {}
@@ -47,9 +49,18 @@ class Path:
     def __init__(self, path):
         self.path = path
         self.components = path.split('.')
+        if self.is_relative():
+            self.components = self.components[1:]
     
     def is_relative(self):
         return self.path.startswith('.')
+    
+    def pop(self):
+        if len(self.components) == 1:
+            return self.components[0], None
+        else:
+            new_path = '.' + '.'.join(self.components[1:])
+            return self.components[0], Path(new_path)
     
     def __repr__(self):
         return f'{"Relative" if self.is_relative() else "Absolute"} Path: {self.path}'
@@ -57,12 +68,13 @@ class Path:
 class Divert:
     def __init__(self, data: dict, container: Container):
         self.raw = data
+        self.parent = container
         if '->' in data:
             self.path = data["->"]
             if 'var' in data:
-                self.path = Path(self.path)
                 self.type = "Variable divert"
             else:
+                self.path = Path(self.path)
                 self.type = "Standard divert"
         elif "f()" in data:
             self.path = Path(data["f()"])
@@ -78,27 +90,43 @@ class Divert:
             self.path = ""
         
         self.conditional = data.get('c')
-        
-        if type(self.path) == Path:
-            #self.target = Divert.resolve_path(self.path, container)
-            pass
 
     def __repr__(self):
         return f'{self.type}: {self.path}{" (conditional)" if self.conditional else ""}'
+    
+    def __getattr__(self, attr):
+        if attr not in self.__dict__:
+            if attr == 'target':
+                if type(self.path) == Path:
+                    value = Divert.resolve_path(self.path, self)
+                    self.__dict__['target'] = value
+                else:
+                    self.__dict__['target'] = self.path
+        return self.__dict__[attr]
 
     # TODO: takes a path, root container, and starting position and returns the element referenced.
-    @classmethod
+    @staticmethod
     def resolve_path(path: Path, start: Container):
+        if path is None:
+            return start
+        selector, new_path = path.pop()
+        anchor = None
         if path.is_relative():
-            return None
+            anchor = start
         else:
-            parent = start
+            anchor = story.root
+
+        if selector == '^':
+            return Divert.resolve_path(new_path, anchor.parent)
+
+        try:
+            index = int(selector)
+            return Divert.resolve_path(new_path, anchor.contents[index-1])
+        except ValueError:
             try:
-                while True:
-                    parent = parent.parent
-            except AttributeError:
-                pass
-            return None
+                return Divert.resolve_path(new_path, anchor.sub_elements[selector])
+            except KeyError:
+                print(f'Failed to resolve path {path} for container {start.raw}')
 
 class Command:
     control_commands = {
@@ -336,3 +364,4 @@ def get_type(object):
 
 with open('data.json', encoding='utf-8-sig') as f:
     data = json.load(f)
+    story = Story(data)
