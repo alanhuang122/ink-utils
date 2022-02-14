@@ -104,7 +104,7 @@ class Divert:
                     self.__dict__['target'] = self.path
         return self.__dict__[attr]
 
-    # TODO: takes a path, root container, and starting position and returns the element referenced.
+    # takes a path, root container, and starting position and returns the element referenced.
     @staticmethod
     def resolve_path(path: Path, start: Container):
         if path is None:
