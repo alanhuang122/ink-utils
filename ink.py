@@ -12,14 +12,14 @@ class Container:
         self.contents = [Container(element, self) if type(element) == list else parse_object(element, self) for element in self.raw_contents[:-1]]
         self.parent = parent
 
-        self.sub_containers = {}
+        self.sub_elements = {}
         if data[-1]:
             self.name = name or data[-1].get('#n')
             self.flags = data[-1].get('#f', 0)
             for name, container in data[-1].items():
                 if name in ['#n', '#f']: # Don't try to create containers for the special keys #n and #f
                     continue
-                self.sub_containers[name] = Container(container, self, name)
+                self.sub_elements[name] = Container(container, self, name)
         else:
             self.name = name
             self.flags = 0
@@ -28,12 +28,16 @@ class Container:
         self.count_start_only = bool(self.flags & 4)
 
     def __repr__(self):
-        return f'Container: {self.name or "(unnamed)"}'
+        ret = f'Container: {self.name or "(unnamed)"}'
+        if self.sub_elements:
+            ret += f' ({len(self.sub_elements)} sub-element(s))'
+        
+        return ret
 
     def __getattr__(self, attr):
         if attr not in self.__dict__:
             try:
-                value = self.__dict__['sub_containers'][attr]
+                value = self.__dict__['sub_elements'][attr]
                 self.__dict__[attr] = value
             except KeyError:
                 raise AttributeError
@@ -272,7 +276,7 @@ class InkList:
         self.origins = data.get('origins')
         self.data = data.get('list')
     
-    def __repr__(self):
+    def __repr__(self): # TODO more useful repr
         return repr(self.data)
 
 class Glue:
